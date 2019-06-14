@@ -10,11 +10,13 @@ class Boid(pg.sprite.Sprite):
     max_x = 0
     max_y = 0
 
+    # CONFIG
     min_speed = .8
     max_speed = 2
     max_force = .01
     perception = 50
     crowding = 30
+    ###############
 
     def __init__(self):
         super(Boid, self).__init__()
