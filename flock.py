@@ -25,7 +25,10 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
+
+        # clear screen
         screen.fill((0, 0, 0), rect=None)
+
         for b in boids:
             b.update(boids)
             screen.blit(b.image, b.pos)
