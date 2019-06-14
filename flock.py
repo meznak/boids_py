@@ -16,11 +16,13 @@ def main():
     ##################
 
     screen = pg.display.set_mode((width, height))
+    background = pg.Surface(screen.get_size()).convert()
+    background.fill((0, 0, 0))
 
     running = True
     pg.event.set_allowed([pg.QUIT, pg.KEYDOWN, pg.KEYUP])
 
-    all_sprites = pg.sprite.Group()
+    all_sprites = pg.sprite.RenderUpdates()
 
     boids = [Boid() for i in range(num_boids)]
     for boid in boids:
@@ -35,9 +37,9 @@ def main():
             b.update(boids)
 
         all_sprites.update(boids)
-        screen.fill((0, 0, 0))
-        all_sprites.draw(screen)
-        pg.display.flip()
+        all_sprites.clear(screen, background)
+        dirty = all_sprites.draw(screen)
+        pg.display.update(dirty)
 
 
 if __name__ == "__main__":

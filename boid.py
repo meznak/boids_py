@@ -11,10 +11,10 @@ class Boid(pg.sprite.Sprite):
     max_y = 0
 
     min_speed = .8
-    max_speed = 3
+    max_speed = 2
     max_force = .01
     perception = 50
-    crowding = 20
+    crowding = 30
 
     def __init__(self):
         super(Boid, self).__init__()
@@ -39,7 +39,7 @@ class Boid(pg.sprite.Sprite):
             if self.vel.magnitude() != 0:
                 break
 
-        self.force = pg.math.Vector2()
+        self.accel = pg.math.Vector2()
 
     def separation(self, boids):
         steering = pg.Vector2()
@@ -83,12 +83,7 @@ class Boid(pg.sprite.Sprite):
 
             separation = self.separation(neighbors)
             alignment = self.alignment(neighbors)
-            # cohesion = self.cohesion(neighbors)
-
-            # # enforce force limit
-            # angle_diff = self.vel.angle_to(self.force)
-            # steer = clamp(angle_diff, -self.max_steer, self.max_steer)
-            # self.force.rotate_ip(-angle_diff + steer)
+            cohesion = self.cohesion(neighbors)
 
             self.accel = separation + alignment + cohesion
         else:
@@ -140,7 +135,3 @@ class Boid(pg.sprite.Sprite):
         if force.magnitude() > self.max_force:
             force = force.normalize() * self.max_force
         return force
-
-def clamp(value, min_val, max_val):
-    """Clamp value to a given range"""
-    return max(min_val, min(value, max_val))
