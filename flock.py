@@ -9,10 +9,10 @@ def main():
     pg.display.set_caption("BOIDS!")
 
     # CONFIG
-    width = 800
-    height = 600
+    width = 1000
+    height = 800
 
-    num_boids = 10
+    num_boids = 30
     ##################
 
     screen = pg.display.set_mode((width, height))

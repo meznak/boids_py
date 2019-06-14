@@ -1,5 +1,5 @@
 import pygame as pg
-from random import random
+from random import randrange
 
 
 class Boid:
@@ -10,9 +10,10 @@ class Boid:
     max_x = 0
     max_y = 0
 
-    max_vel = .5
-    max_steer = .05
-    perception = 50
+    max_vel = 1
+    max_steer = 1
+    perception = 80
+    crowding = 50
 
     def __init__(self):
         if Boid.max_x == 0:
@@ -20,13 +21,24 @@ class Boid:
             Boid.max_x = info.current_w
             Boid.max_y= info.current_h
 
-        self.pos = pg.math.Vector2(random() * Boid.max_x, random() * Boid.max_y)
+        self.pos = pg.math.Vector2(
+            randrange(0, Boid.max_x),
+            randrange(0, Boid.max_y))
         self.rect = self.image.get_rect(center=self.pos)
-        self.vel = pg.math.Vector2(random() * Boid.max_vel, random() * Boid.max_vel)
+        self.vel = pg.math.Vector2(
+            randrange(-1, 1) * Boid.max_vel,
+            randrange(-1, 1) * Boid.max_vel)
         self.force = pg.math.Vector2()
 
     def separation(self, boids):
-        pass
+        diff = pg.Vector2()
+        force = pg.Vector2()
+        for boid in boids:
+            if self.pos.distance_to(boid.pos) < self.crowding:
+                diff = pg.Vector2(self.pos - boid.pos)
+                diff /= self.pos.distance_squared_to(boid.pos)
+                # diff.scale_to_length(1 / self.pos.distance_to(boid.pos))
+                self.force += diff
 
     def alignment(self, boids):
         group_v = pg.Vector2()
@@ -36,7 +48,11 @@ class Boid:
         self.force += group_v
 
     def cohesion(self, boids):
-        pass
+        group_pos = pg.Vector2()
+        for boid in boids:
+            group_pos += boid.pos
+        group_pos / len(boids)
+        self.force -= self.pos
 
     def update(self, boids):
         # update velocity
