@@ -24,7 +24,7 @@ class Boid(pg.sprite.Sprite):
         if Boid.max_x == 0:
             info = pg.display.Info()
             Boid.max_x = info.current_w
-            Boid.max_y= info.current_h
+            Boid.max_y = info.current_h
 
         self.image = Boid.image.copy()
         self.rect = self.image.get_rect()
@@ -75,7 +75,7 @@ class Boid(pg.sprite.Sprite):
         steering = self.clamp_force(steering)
         return steering
 
-    def update(self, boids):
+    def update(self, dt, boids):
         # update velocity
         neighbors = self.get_neighbors(boids)
         if neighbors:
@@ -92,11 +92,11 @@ class Boid(pg.sprite.Sprite):
             self.accel = pg.Vector2()
 
         # move and turn
-        self.pos += + self.vel
+        self.pos += + self.vel * dt
         self.wrap()
         _, angle = self.vel.as_polar()
 
-        self.vel += self.accel
+        self.vel += self.accel * dt
 
         # enforce speed limit
         while self.vel.magnitude() < self.min_speed:
