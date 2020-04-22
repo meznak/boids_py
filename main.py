@@ -9,6 +9,9 @@ from pygame.locals import *
 # Import local modules
 from boid import Boid
 
+default_boids = 50
+default_geometry = "1000x1000"
+
 
 def update(dt, boids):
     """
@@ -26,10 +29,18 @@ def update(dt, boids):
         if event.type == QUIT:
             pg.quit()
             sys.exit(0)
-        if event.type == KEYDOWN:
-            if event.key == ord('q'):
+        elif event.type == KEYDOWN:
+            if event.key == pg.K_q:
                 pg.quit()
                 sys.exit(0)
+            elif event.key == pg.K_UP:
+                add_boids(boids, 10)
+            elif event.key == pg.K_DOWN:
+                boids.remove(boids.sprites()[:10])
+            elif event.key == pg.K_r:
+                num_boids = len(boids)
+                boids.empty()
+                add_boids(boids, num_boids)
 
     for b in boids:
         b.update(dt, boids)
@@ -72,8 +83,7 @@ def main(args):
 
     boids = pg.sprite.RenderUpdates()
 
-    for _ in range(args.num_boids):
-        boids.add(Boid())
+    add_boids(boids, args.num_boids)
 
     # Main game loop.
     dt = 1/fps  # dt is the time since last frame.
@@ -85,11 +95,16 @@ def main(args):
         dt = fpsClock.tick(fps)
 
 
+def add_boids(boids, num_boids):
+    for _ in range(num_boids):
+        boids.add(Boid())
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Emergent flocking.')
     parser.add_argument('--geometry', metavar='WxH', type=str,
-                        default="1024x768", help='geometry of window')
-    parser.add_argument('--number', dest='num_boids', default=30,
+                        default=default_geometry, help='geometry of window')
+    parser.add_argument('--number', dest='num_boids', default=default_boids,
                         help='number of boids to generate')
     args = parser.parse_args()
 

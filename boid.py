@@ -1,45 +1,36 @@
 import pygame as pg
 from random import uniform
+from vehicle import Vehicle
 
 
-class Boid(pg.sprite.Sprite):
-    image = pg.Surface((20, 10), pg.SRCALPHA)
-    pg.draw.polygon(image, pg.Color('white'),
-                    [(0, 0), (20, 10), (0, 20)])
-
-    max_x = 0
-    max_y = 0
+class Boid(Vehicle):
 
     # CONFIG
-    min_speed = .8
-    max_speed = 2
-    max_force = .01
+    min_speed = .2
+    max_speed = 3
+    max_force = .05
     perception = 50
     crowding = 30
+    can_wrap = False
+    edge_distance_pct = 5
     ###############
 
     def __init__(self):
-        super(Boid, self).__init__()
+        Boid.set_boundary(Boid.edge_distance_pct)
 
-        if Boid.max_x == 0:
-            info = pg.display.Info()
-            Boid.max_x = info.current_w
-            Boid.max_y = info.current_h
-
-        self.image = Boid.image.copy()
-        self.rect = self.image.get_rect()
-
-        self.pos = pg.math.Vector2(
+        # Randomize starting position and velocity
+        start_position = pg.math.Vector2(
             uniform(0, Boid.max_x),
             uniform(0, Boid.max_y))
-        self.rect = self.image.get_rect(center=self.pos)
+        start_velocity = pg.math.Vector2(
+            uniform(-1, 1) * Boid.max_speed,
+            uniform(-1, 1) * Boid.max_speed)
 
-        while True:
-            self.vel = pg.math.Vector2(
-                uniform(-1, 1) * Boid.max_speed,
-                uniform(-1, 1) * Boid.max_speed)
-            if self.vel.magnitude() != 0:
-                break
+        super().__init__(start_position, start_velocity,
+                         Boid.min_speed, Boid.max_speed,
+                         Boid.max_force, Boid.can_wrap)
+
+        self.rect = self.image.get_rect(center=self.position)
 
         self.accel = pg.math.Vector2()
 
@@ -47,9 +38,9 @@ class Boid(pg.sprite.Sprite):
         steering = pg.Vector2()
         count = 0
         for boid in boids:
-            dist = self.pos.distance_to(boid.pos)
+            dist = self.position.distance_to(boid.position)
             if dist < self.crowding:
-                diff = pg.Vector2(self.pos - boid.pos)
+                diff = pg.Vector2(self.position - boid.position)
                 diff /= dist
                 steering += diff
                 count += 1
@@ -61,7 +52,7 @@ class Boid(pg.sprite.Sprite):
     def alignment(self, boids):
         steering = pg.Vector2()
         for boid in boids:
-            steering += boid.vel
+            steering += boid.velocity
         steering /= len(boids)
         steering = self.clamp_force(steering)
         return steering
@@ -69,71 +60,35 @@ class Boid(pg.sprite.Sprite):
     def cohesion(self, boids):
         steering = pg.Vector2()
         for boid in boids:
-            steering += boid.pos
+            steering += boid.position
         steering /= len(boids)
-        steering -= self.pos
+        steering -= self.position
         steering = self.clamp_force(steering)
         return steering
 
     def update(self, dt, boids):
-        # update velocity
         neighbors = self.get_neighbors(boids)
         if neighbors:
-            separation = pg.Vector2()
-            alignment = pg.Vector2()
-            cohesion = pg.Vector2()
 
             separation = self.separation(neighbors)
             alignment = self.alignment(neighbors)
             cohesion = self.cohesion(neighbors)
+            if not self.can_wrap:
+                avoid_edge = self.avoid_edge()
+            else:
+                avoid_edge = pg.Vector2()
 
-            self.accel = separation + alignment + cohesion
+            steering = separation + alignment + cohesion + avoid_edge
         else:
-            self.accel = pg.Vector2()
+            steering = pg.Vector2()
 
-        # move and turn
-        self.pos += + self.vel * dt
-        self.wrap()
-        _, angle = self.vel.as_polar()
-
-        self.vel += self.accel * dt
-
-        # enforce speed limit
-        while self.vel.magnitude() < self.min_speed:
-            _, angle = self.vel.as_polar()
-            self.vel.from_polar((self.min_speed * 1.1, angle))
-
-        if self.vel.magnitude() > self.max_speed:
-            self.vel.scale_to_length(self.max_speed)
-
-        # make boid
-        self.image = pg.transform.rotate(Boid.image, -angle)
-        self.rect = self.image.get_rect(center=self.pos)
-
-    def wrap(self):
-        if self.pos.x < 0:
-            self.pos.x += Boid.max_x
-        elif self.pos.x > Boid.max_x:
-            self.pos.x -= Boid.max_x
-
-        if self.pos.y < 0:
-            self.pos.y += Boid.max_y
-        elif self.pos.y > Boid.max_y:
-            self.pos.y -= Boid.max_y
+        super().update(dt, steering)
 
     def get_neighbors(self, boids):
         neighbors = []
         for boid in boids:
             if boid != self:
-                dist = self.pos - boid.pos
+                dist = self.position - boid.position
                 if dist.magnitude() < self.perception:
                     neighbors.append(boid)
         return neighbors
-
-    def clamp_force(self, force):
-        if force.magnitude() > self.max_speed:
-            force = force.normalize() * self.max_speed
-        force -= self.vel
-        if force.magnitude() > self.max_force:
-            force = force.normalize() * self.max_force
-        return force
