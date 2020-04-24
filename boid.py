@@ -6,13 +6,14 @@ from vehicle import Vehicle
 class Boid(Vehicle):
 
     # CONFIG
-    min_speed = .2
-    max_speed = 3
-    max_force = .05
-    perception = 50
-    crowding = 30
+    min_speed = .01
+    max_speed = .2
+    max_force = .3
+    max_turn = 5
+    perception = 60
+    crowding = 40
     can_wrap = False
-    edge_distance_pct = 5
+    edge_distance_pct = 10
     ###############
 
     def __init__(self):
@@ -36,16 +37,10 @@ class Boid(Vehicle):
 
     def separation(self, boids):
         steering = pg.Vector2()
-        count = 0
         for boid in boids:
             dist = self.position.distance_to(boid.position)
             if dist < self.crowding:
-                diff = pg.Vector2(self.position - boid.position)
-                diff /= dist
-                steering += diff
-                count += 1
-        if count:
-            steering /= count
+                steering -= boid.position - self.position
         steering = self.clamp_force(steering)
         return steering
 
@@ -54,6 +49,7 @@ class Boid(Vehicle):
         for boid in boids:
             steering += boid.velocity
         steering /= len(boids)
+        steering -= self.velocity
         steering = self.clamp_force(steering)
         return steering
 
@@ -77,6 +73,11 @@ class Boid(Vehicle):
                 avoid_edge = self.avoid_edge()
             else:
                 avoid_edge = pg.Vector2()
+
+            # DEBUG
+            # separation.scale_to_length(0)
+            # alignment.scale_to_length(0)
+            # cohesion.scale_to_length(0)
 
             steering = separation + alignment + cohesion + avoid_edge
         else:

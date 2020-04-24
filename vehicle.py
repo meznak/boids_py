@@ -8,7 +8,7 @@ class Vehicle(pg.sprite.Sprite):
                     [(0, 0), (20, 10), (0, 20)])
 
     def __init__(self, position, velocity, min_speed, max_speed,
-                 max_force, can_wrap):  # , image=None):
+                 max_force, can_wrap):
 
         super().__init__()
 
@@ -33,18 +33,26 @@ class Vehicle(pg.sprite.Sprite):
         self.steering = 0.0
         self.heading = 0.0
 
-        # if image:
-        #     self.image = image.copy()
         self.rect = self.image.get_rect(center=self.position)
 
     def update(self, dt, steering):
-        self.position += self.velocity  # * dt
+        self.position += self.velocity * dt
         if self.can_wrap:
             self.wrap()
 
-        self.velocity += self.acceleration  # * dt, 0)
-        self.acceleration = steering
-        speed, self.heading = self.velocity.as_polar()
+        # enforce turn limit
+        _, old_heading = self.velocity.as_polar()
+        new_velocity = self.velocity + self.acceleration * dt
+        speed, new_heading = new_velocity.as_polar()
+
+        heading_diff = 180 - (180 - new_heading + old_heading) % 360
+        if abs(heading_diff) > self.max_turn:
+            if heading_diff > self.max_turn:
+                new_heading = old_heading + self.max_turn
+            else:
+                new_heading = old_heading - self.max_turn
+
+        self.velocity.from_polar((speed, new_heading))
 
         # enforce speed limit
         speed, self.heading = self.velocity.as_polar()
@@ -54,19 +62,27 @@ class Vehicle(pg.sprite.Sprite):
         if speed > self.max_speed:
             self.velocity.scale_to_length(self.max_speed)
 
+        self.acceleration += steering * dt
+
         self.image = pg.transform.rotate(Vehicle.image, -self.heading)
         self.rect = self.image.get_rect(center=self.position)
 
     def avoid_edge(self):
-        steering = pg.Vector2()
-        if self.position.x < self.edges[0] or \
-           self.position.y < self.edges[1] or \
-           self.position.x > self.edges[2] or \
-           self.position.y > self.edges[3]:
+        left = self.edges[0] - self.position.y
+        up = self.edges[1] - self.position.y
+        right = self.position.x - self.edges[2]
+        down = self.position.y - self.edges[3]
+
+        scale = max(left, up, right, down)
+
+        if scale > 0:
             center = (Vehicle.max_x / 2, Vehicle.max_y / 2)
             steering = pg.Vector2(center)
             steering -= self.position
+            steering.scale_to_length(scale / 10)
             steering = self.clamp_force(steering)
+        else:
+            steering = pg.Vector2()
 
         return steering
 
