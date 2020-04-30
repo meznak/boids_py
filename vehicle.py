@@ -3,9 +3,9 @@ import pygame as pg
 
 class Vehicle(pg.sprite.Sprite):
     # default image is a li'l white triangle
-    image = pg.Surface((20, 10), pg.SRCALPHA)
+    image = pg.Surface((10, 10), pg.SRCALPHA)
     pg.draw.polygon(image, pg.Color('white'),
-                    [(0, 0), (20, 10), (0, 20)])
+                    [(15, 5), (0, 2), (0, 8)])
 
     def __init__(self, position, velocity, min_speed, max_speed,
                  max_force, can_wrap):
@@ -19,7 +19,7 @@ class Vehicle(pg.sprite.Sprite):
 
         # set position
         dimensions = len(position)
-        assert (1 < dimensions < 4), "Invalid spawn position dimenions"
+        assert (1 < dimensions < 4), "Invalid spawn position dimensions"
 
         if dimensions == 2:
             self.position = pg.Vector2(position)
@@ -30,15 +30,12 @@ class Vehicle(pg.sprite.Sprite):
             self.acceleration = pg.Vector3(0, 0, 0)
             self.velocity = pg.Vector3(velocity)
 
-        self.steering = 0.0
         self.heading = 0.0
 
         self.rect = self.image.get_rect(center=self.position)
 
     def update(self, dt, steering):
-        self.position += self.velocity * dt
-        if self.can_wrap:
-            self.wrap()
+        self.acceleration = steering * dt
 
         # enforce turn limit
         _, old_heading = self.velocity.as_polar()
@@ -62,13 +59,44 @@ class Vehicle(pg.sprite.Sprite):
         if speed > self.max_speed:
             self.velocity.scale_to_length(self.max_speed)
 
-        self.acceleration += steering * dt
+        # move
+        self.position += self.velocity * dt
 
+        if self.can_wrap:
+            self.wrap()
+
+        # draw
         self.image = pg.transform.rotate(Vehicle.image, -self.heading)
-        self.rect = self.image.get_rect(center=self.position)
+
+        if self.debug:
+            center = pg.Vector2((50, 50))
+
+            velocity = pg.Vector2(self.velocity)
+            speed = velocity.length()
+            velocity += center
+
+            acceleration = pg.Vector2(self.acceleration)
+            acceleration += center
+
+            steering = pg.Vector2(steering)
+            steering += center
+
+            overlay = pg.Surface((100, 100), pg.SRCALPHA)
+            overlay.blit(self.image, center - (10, 10))
+
+            pg.draw.line(overlay, pg.Color('green'), center, velocity, 3)
+            pg.draw.line(overlay, pg.Color('red'), center + (5, 0),
+                         acceleration + (5, 0), 3)
+            pg.draw.line(overlay, pg.Color('blue'), center - (5, 0),
+                         steering - (5, 0), 3)
+
+            self.image = overlay
+            self.rect = overlay.get_rect(center=self.position)
+        else:
+            self.rect = self.image.get_rect(center=self.position)
 
     def avoid_edge(self):
-        left = self.edges[0] - self.position.y
+        left = self.edges[0] - self.position.x
         up = self.edges[1] - self.position.y
         right = self.position.x - self.edges[2]
         down = self.position.y - self.edges[3]
@@ -79,8 +107,6 @@ class Vehicle(pg.sprite.Sprite):
             center = (Vehicle.max_x / 2, Vehicle.max_y / 2)
             steering = pg.Vector2(center)
             steering -= self.position
-            steering.scale_to_length(scale / 10)
-            steering = self.clamp_force(steering)
         else:
             steering = pg.Vector2()
 
@@ -108,7 +134,7 @@ class Vehicle(pg.sprite.Sprite):
                          Vehicle.max_y - margin_h]
 
     def clamp_force(self, force):
-        if force.magnitude() > self.max_force:
+        if 0 < force.magnitude() > self.max_force:
             force.scale_to_length(self.max_force)
 
         return force
