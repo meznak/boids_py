@@ -6,14 +6,15 @@ from vehicle import Vehicle
 class Boid(Vehicle):
 
     # CONFIG
+    debug = False
     min_speed = .01
     max_speed = .2
-    max_force = .3
+    max_force = 1
     max_turn = 5
     perception = 60
-    crowding = 40
+    crowding = 15
     can_wrap = False
-    edge_distance_pct = 10
+    edge_distance_pct = 5
     ###############
 
     def __init__(self):
@@ -33,7 +34,7 @@ class Boid(Vehicle):
 
         self.rect = self.image.get_rect(center=self.position)
 
-        self.accel = pg.math.Vector2()
+        self.debug = Boid.debug
 
     def separation(self, boids):
         steering = pg.Vector2()
@@ -51,7 +52,7 @@ class Boid(Vehicle):
         steering /= len(boids)
         steering -= self.velocity
         steering = self.clamp_force(steering)
-        return steering
+        return steering / 8
 
     def cohesion(self, boids):
         steering = pg.Vector2()
@@ -60,28 +61,29 @@ class Boid(Vehicle):
         steering /= len(boids)
         steering -= self.position
         steering = self.clamp_force(steering)
-        return steering
+        return steering / 100
 
     def update(self, dt, boids):
+        steering = pg.Vector2()
+
+        if not self.can_wrap:
+            steering += self.avoid_edge()
+
         neighbors = self.get_neighbors(boids)
         if neighbors:
 
             separation = self.separation(neighbors)
             alignment = self.alignment(neighbors)
             cohesion = self.cohesion(neighbors)
-            if not self.can_wrap:
-                avoid_edge = self.avoid_edge()
-            else:
-                avoid_edge = pg.Vector2()
 
             # DEBUG
-            # separation.scale_to_length(0)
-            # alignment.scale_to_length(0)
-            # cohesion.scale_to_length(0)
+            # separation *= 0
+            # alignment *= 0
+            # cohesion *= 0
 
-            steering = separation + alignment + cohesion + avoid_edge
-        else:
-            steering = pg.Vector2()
+            steering += separation + alignment + cohesion
+
+        # steering = self.clamp_force(steering)
 
         super().update(dt, steering)
 
@@ -89,7 +91,7 @@ class Boid(Vehicle):
         neighbors = []
         for boid in boids:
             if boid != self:
-                dist = self.position - boid.position
-                if dist.magnitude() < self.perception:
+                dist = self.position.distance_to(boid.position)
+                if dist < self.perception:
                     neighbors.append(boid)
         return neighbors
