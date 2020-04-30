@@ -9,7 +9,7 @@ from pygame.locals import *
 # Import local modules
 from boid import Boid
 
-default_boids = 50
+default_boids = 100
 default_geometry = "1000x1000"
 
 
@@ -30,14 +30,53 @@ def update(dt, boids):
             pg.quit()
             sys.exit(0)
         elif event.type == KEYDOWN:
+            mods = pg.key.get_mods()
             if event.key == pg.K_q:
+                # quit
                 pg.quit()
                 sys.exit(0)
             elif event.key == pg.K_UP:
-                add_boids(boids, 10)
+                # add boids
+                if mods & pg.KMOD_SHIFT:
+                    add_boids(boids, 100)
+                else:
+                    add_boids(boids, 10)
             elif event.key == pg.K_DOWN:
-                boids.remove(boids.sprites()[:10])
+                # remove boids
+                if mods & pg.KMOD_SHIFT:
+                    boids.remove(boids.sprites()[:100])
+                else:
+                    boids.remove(boids.sprites()[:10])
+            elif event.key == pg.K_1:
+                for boid in boids:
+                    boid.max_force /= 2
+                print("max force {}".format(boids.sprites()[0].max_force))
+            elif event.key == pg.K_2:
+                for boid in boids:
+                    boid.max_force *= 2
+                print("max force {}".format(boids.sprites()[0].max_force))
+            elif event.key == pg.K_3:
+                for boid in boids:
+                    boid.perception *= .8
+                print("perception {}".format(boids.sprites()[0].perception))
+            elif event.key == pg.K_4:
+                for boid in boids:
+                    boid.perception *= 1.2
+                print("perception {}".format(boids.sprites()[0].perception))
+            elif event.key == pg.K_5:
+                for boid in boids:
+                    boid.crowding *= 0.8
+                print("crowding {}".format(boids.sprites()[0].crowding))
+            elif event.key == pg.K_6:
+                for boid in boids:
+                    boid.crowding *= 1.2
+                print("crowding {}".format(boids.sprites()[0].crowding))
+            elif event.key == pg.K_d:
+                # toggle debug
+                for boid in boids:
+                    boid.debug = not boid.debug
             elif event.key == pg.K_r:
+                # reset
                 num_boids = len(boids)
                 boids.empty()
                 add_boids(boids, num_boids)
